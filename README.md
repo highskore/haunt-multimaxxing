@@ -1,4 +1,17 @@
+<div align="center">
+
+<img src="docs/icon.png" width="96" alt="">
+
 # MULTIMAXXING
+
+**Decides which agent deserves you next, and whether a ping may interrupt you now.**
+
+[![Haunt plugin](https://img.shields.io/badge/Haunt-plugin-D97757)](https://github.com/highskore/haunt-hackathon)
+![Plugin API 0.5](https://img.shields.io/badge/plugin%20API-0.5-111)
+![WASM component](https://img.shields.io/badge/WASM-component-654ff0?logo=webassembly&logoColor=white)
+![MIT licence](https://img.shields.io/badge/licence-MIT-6b7280)
+
+</div>
 
 An attention scheduler for Haunt. Haunt shows what each agent is doing; MULTIMAXXING decides which tab deserves you next, whether a ping may interrupt you now or should wait for a break, and what fits while every agent is busy.
 
