@@ -1,0 +1,44 @@
+# synthetic-payoff (hand-made): two approvals while you read docs. build has ~20 min of work behind
+# its approval, so it interrupts at once; lint has ~30 s, so it waits until it has waited long enough.
+00:00:00  > build    focus
+00:00:00  > build    prompt_submit
+00:00:05  > lint     focus
+00:00:05            row      build    ~20m "turns take ~20m"
+00:00:05  > lint     prompt_submit
+00:00:10  > docs     focus
+00:00:10            row      lint     ~1m "turns take ~35s"
+00:00:10  > docs     prompt_submit
+00:00:40  > docs     stop
+00:00:40            row      lint     cleared
+00:01:00            row      build    ~19m "turns take ~20m"
+00:02:00  > build    permission_seen Bash docker build -t app .
+00:02:00            NOTIFY   build    interrupt: build waits 0s on Bash (docker build) approval, ~18m of work behind it; you're 1m into docs (score 390 > cost 100 + 60)
+00:02:00            row      build    [next] "approval for <1m"
+00:02:00            title             "next: build · approval for <1m"
+00:03:00            row      build    [next] "approval for 1m"
+00:03:00            title             "next: build · approval for 1m"
+00:03:40  > lint     permission_seen Bash npx eslint --fix src
+00:03:40            hold     lint     held: lint waits 0s on Bash (npx eslint) approval; you're 3m into docs (score 120 <= cost 150 + 60)
+00:03:40            row      lint     held "held <1m · Bash (npx eslint) approval"
+00:03:40            title             "next: build · 1 held"
+00:04:00            row      build    [next] "approval for 2m"
+00:04:45            row      lint     held "held 1m · Bash (npx eslint) approval"
+00:05:00            row      build    [next] "approval for 3m"
+00:05:45            row      lint     held "held 2m · Bash (npx eslint) approval"
+00:06:00            row      build    [next] "approval for 4m"
+00:06:45            NOTIFY   lint     escalate: lint waits 3m on Bash (npx eslint) approval; you're 6m into docs (score 305 > cost 242 + 60)
+00:06:45            row      lint     later "approval for 3m"
+00:06:45            title             "next: build · approval for 4m"
+00:07:00            row      build    [next] "approval for 5m"
+00:07:00            title             "next: build · approval for 5m"
+00:07:45            row      lint     later "approval for 4m"
+00:08:00            row      build    [next] "approval for 6m"
+00:08:00            title             "next: build · approval for 6m"
+00:08:45            row      lint     later "approval for 5m"
+00:09:00            row      build    [next] "approval for 7m"
+00:09:00            title             "next: build · approval for 7m"
+00:09:45            row      lint     later "approval for 6m"
+00:10:00  > docs     prompt_submit
+00:10:00            row      build    [next] "approval for 8m"
+00:10:00            title             "next: build · approval for 8m"
+-- 3 pings: 2 interrupted at once, 1 held; 0 releases at a break or the cap; 0 dropped before they reached you

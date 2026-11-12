@@ -1,0 +1,23 @@
+# synthetic-filler-resume (hand-made): a and b run long turns the predictor knows; c finished with
+# edits and a failing test. While you wait, review c's diff fits in the gap; opening c shows what it did.
+{"k":"learn","key":"turn@a","ms":[480000,500000,460000,520000]}
+{"k":"learn","key":"turn@b","ms":[600000,660000,620000]}
+{"k":"learn","key":"turn@c","ms":[120000,150000,100000]}
+{"t":0,"k":"focus","s":"c"}
+{"t":0,"k":"prompt_submit","s":"c"}
+{"t":5000,"k":"focus","s":"b"}
+{"t":5000,"k":"prompt_submit","s":"b"}
+{"t":10000,"k":"focus","s":"a"}
+{"t":20000,"k":"task_created","s":"c","task":"1"}
+{"t":30000,"k":"tool_start","s":"c","tool":"Bash","cmd":"cargo test"}
+{"t":70000,"k":"tool_failed","s":"c","tool":"Bash","cmd":"cargo test"}
+{"t":80000,"k":"file_edited","s":"c","tool":"Edit","path":"src/lib.rs"}
+{"t":85000,"k":"file_edited","s":"c","tool":"Edit","path":"src/parse.rs"}
+{"t":90000,"k":"tool_start","s":"c","tool":"Bash","cmd":"cargo test"}
+{"t":120000,"k":"tool_failed","s":"c","tool":"Bash","cmd":"cargo test"}
+{"t":125000,"k":"file_edited","s":"c","tool":"Edit","path":"src/parse.rs"}
+{"t":126000,"k":"file_edited","s":"c","tool":"Edit","path":"tests/parse.rs"}
+{"t":130000,"k":"task_updated","s":"c","task":"1","text":"completed"}
+{"t":140000,"k":"stop","s":"c"}
+{"t":150000,"k":"prompt_submit","s":"a"}
+{"t":330000,"k":"focus","s":"c"}

@@ -1,0 +1,33 @@
+# synthetic-starvation-cap (hand-made): you stay deep in api for a quarter of an hour; web's finished
+# output never outweighs that, so it goes out when it has been held for the 10 minute cap.
+00:00:00  > web      focus
+00:00:00  > web      prompt_submit
+00:00:05  > api      focus
+00:00:05  > api      prompt_submit
+00:00:30  > api      stop
+00:01:00  > web      stop
+00:01:00            hold     web      held: web finished 0s ago; you're 30s into api (score 40 <= cost 75 + 60)
+00:01:00            row      web      held "held <1m · finished output"
+00:01:00            title             "next: web · 1 held"
+00:02:00            row      web      held "held 1m · finished output"
+00:03:00            row      web      held "held 2m · finished output"
+00:04:00            row      web      held "held 3m · finished output"
+00:05:00            row      web      held "held 4m · finished output"
+00:06:00            row      web      held "held 5m · finished output"
+00:07:00            row      web      held "held 6m · finished output"
+00:08:00            row      web      held "held 7m · finished output"
+00:09:00            row      web      held "held 8m · finished output"
+00:10:00            row      web      held "held 9m · finished output"
+00:11:00            RELEASE  web      released: web held 10m, the cap
+00:11:00            row      web      [next] "finished 10m ago"
+00:11:00            title             "next: web · finished 10m ago"
+00:12:00            row      web      [next] "finished 11m ago"
+00:12:00            title             "next: web · finished 11m ago"
+00:13:00            row      web      [next] "finished 12m ago"
+00:13:00            title             "next: web · finished 12m ago"
+00:14:00            row      web      [next] "finished 13m ago"
+00:14:00            title             "next: web · finished 13m ago"
+00:15:00  > api      prompt_submit
+00:15:00            row      web      [next] "finished 14m ago"
+00:15:00            title             "next: web · finished 14m ago"
+-- 1 ping: 0 interrupted at once, 1 held; 1 release at a break or the cap; 0 dropped before they reached you

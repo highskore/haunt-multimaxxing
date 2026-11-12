@@ -1,0 +1,33 @@
+# synthetic-batch-at-break (hand-made): you read api's output; web finishing and a small db approval
+# both wait, then go out as one notification when you send api its next prompt.
+00:00:00  > web      focus
+00:00:00  > web      prompt_submit
+00:00:10  > db       focus
+00:00:10  > db       prompt_submit
+00:00:20  > api      focus
+00:00:20  > api      prompt_submit
+00:00:30  > api      tool_start Bash cargo test -p api
+00:01:30  > api      tool_done Bash cargo test -p api
+00:02:00  > api      stop
+00:03:20  > web      file_edited Edit src/app.tsx
+00:03:25  > web      stop
+00:03:25            hold     web      held: web finished 0s ago, 1 file edited; you're 1m into api (score 55 <= cost 102 + 60)
+00:03:25            row      web      held "held <1m · finished output"
+00:03:25            title             "next: web · 1 held"
+00:04:20  > db       permission_seen Bash git push origin main
+00:04:20            hold     db       held: db waits 0s on Bash (git push origin) approval; you're 2m into api (score 120 <= cost 130 + 60)
+00:04:20            row      db       held "held <1m · Bash (git push origin) approval"
+00:04:20            title             "next: db · 2 held"
+00:04:30            row      web      held "held 1m · finished output"
+00:05:30  > api      prompt_submit
+00:05:30            RELEASE  db,web   released 2 at a break: you sent a prompt on api
+00:05:30            row      db       [next] "approval for 1m"
+00:05:30            row      web      later "finished 2m ago · 1 file"
+00:05:30            title             "next: db · approval for 1m"
+00:05:45  > db       focus
+00:05:45            resume   db       while away 5m: asked for 1 approval; now waits on Bash (git push origin) approval
+00:05:45            row      db       cleared
+00:05:45            row      web      [next] "finished 2m ago · 1 file"
+00:05:45            title             "next: web · finished 2m ago · 1 file"
+00:05:50  > db       tool_ran Bash git push origin main
+-- 2 pings: 0 interrupted at once, 2 held; 1 release at a break or the cap; 0 dropped before they reached you

@@ -1,0 +1,14 @@
+# synthetic-payoff (hand-made): two approvals while you read docs. build has ~20 min of work behind
+# its approval, so it interrupts at once; lint has ~30 s, so it waits until it has waited long enough.
+{"k":"learn","key":"turn@build","ms":[1080000,1200000,1320000,1140000,1260000]}
+{"k":"learn","key":"turn@lint","ms":[30000,40000,35000]}
+{"t":0,"k":"focus","s":"build"}
+{"t":0,"k":"prompt_submit","s":"build"}
+{"t":5000,"k":"focus","s":"lint"}
+{"t":5000,"k":"prompt_submit","s":"lint"}
+{"t":10000,"k":"focus","s":"docs"}
+{"t":10000,"k":"prompt_submit","s":"docs"}
+{"t":40000,"k":"stop","s":"docs"}
+{"t":120000,"k":"permission_seen","s":"build","tool":"Bash","cmd":"docker build -t app ."}
+{"t":220000,"k":"permission_seen","s":"lint","tool":"Bash","cmd":"npx eslint --fix src"}
+{"t":600000,"k":"prompt_submit","s":"docs"}

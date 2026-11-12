@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["crates/engine", "crates/replay"]
+# The wasm component builds on its own (see plugin/build.sh), so `cargo test` here needs no wasm target.
+exclude = ["plugin"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+version = "0.1.0"
+publish = false

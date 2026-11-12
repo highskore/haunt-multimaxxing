@@ -1,0 +1,38 @@
+[plugin]
+id = "dev.haunt.multimaxxing"
+name = "MULTIMAXXING"
+description = "Schedules your attention across agents: what to look at next, when a ping may interrupt you, what fits while you wait"
+version = "0.1.0"
+api = "0.5"
+entry = "target/wasm32-wasip2/release/haunt_plugin.wasm"
+license = "MIT"
+
+[capabilities]
+events = ["agent.prompt", "agent.task", "agent.subagent", "agent.tool", "agent.permission-request", "agent.question", "agent.file-edited", "agent.stop", "agent.unknown"]
+# Commands key the duration predictor ("cargo test") and name what an approval is for. Only the
+# program and up to two plain words are kept; never flags, paths or values.
+event_details = true
+decorate = true
+notifications = true
+# Which tab you're on and the tabs' names; the plugin never arranges the sidebar.
+sidebar = true
+timer = true
+# While a ping waits for your break, Haunt's own "turn finished" notes wait too (never an approval).
+notify_hold = true
+# One dim line in the title bar: the tab to go to next, or how many pings wait for your break.
+title = true
+
+[settings]
+notify = { type = "bool", default = true, description = "Decide when pings reach you: urgent ones at once, the rest together at your next break" }
+hold_haunt = { type = "bool", default = true, description = "Hold Haunt's own turn-finished notes until your break. Off: MULTIMAXXING sends every ping itself (turn off Haunt's on_done and on_permission)" }
+labels = { type = "bool", default = true, description = "Label rows: next, held, later, or ~3m left in a turn" }
+reasons = { type = "bool", default = true, description = "Show the short reason after a row's meta line" }
+bars = { type = "bool", default = false, description = "Draw a running turn's predicted progress as the row's bar" }
+filler = { type = "bool", default = true, description = "In ⌘K next, suggest what fits while every agent works" }
+resume = { type = "bool", default = true, description = "⌘K resume: what each tab did since you last looked, and your notes" }
+title = { type = "bool", default = true, description = "Show the next tab, or what waits for your break, in the title bar" }
+threshold = { type = "integer", default = 60, description = "How far a ping must outweigh your focus to interrupt, in points (about seconds)" }
+max_hold_min = { type = "integer", default = 10, description = "Longest a ping waits for a break, 1 to 120 minutes" }
+min_gap_min = { type = "integer", default = 3, description = "Shortest wait worth filling, in minutes" }
+learn = { type = "bool", default = true, description = "Learn how soon you usually get to each repo, kept on this Mac: one you reach fast costs more to interrupt for, one you leave costs less" }
+unverified = { type = "bool", default = false, description = "Also follow events without the tab's nonce, which anything in the terminal can forge" }

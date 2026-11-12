@@ -1,0 +1,141 @@
+# recorded-demo-repos (real, recorded 2026-11-12): three headless Claude Code sessions (sonnet) on copies of the
+# demo repos web-api, parser and billing, run in parallel. Events were captured at the hook socket by `record` and scrubbed
+# by `replay --import`: commands cut to their key, files numbered, prompts and paths dropped. Nobody was at the
+# keyboard, so no tab is ever focused; billing's approval went unanswered (headless runs refuse it) and it stopped.
+00:00:00  > web-api  session_start
+00:00:00  > web-api  prompt_submit
+00:00:04  > web-api  tool_start Agent
+00:00:04  > web-api  subagent_spawn
+00:00:05  > web-api  subagent_start
+00:00:05  > web-api  tool_done Agent
+00:00:05  > web-api  tool_ran Agent
+00:00:06  > web-api  tool_start Glob
+00:00:06  > web-api  tool_start Agent
+00:00:06  > web-api  subagent_spawn
+00:00:06  > web-api  tool_done Agent
+00:00:06  > web-api  tool_ran Agent
+00:00:07  > web-api  subagent_start
+00:00:07  > web-api  tool_done Glob
+00:00:07  > web-api  tool_ran Glob
+00:00:07  > web-api  subagent_tool Glob
+00:00:08  > web-api  tool_start Glob
+00:00:08  > web-api  stop
+00:00:08            hold     web-api  held: web-api finished 0s ago; no tab in focus (score 40 <= cost 0 + 60)
+00:00:08            row      web-api  held "held <1m · finished output"
+00:00:08            title             "next: web-api · 1 held"
+00:00:08  > web-api  tool_done Glob
+00:00:08  > web-api  tool_ran Glob
+00:00:08  > web-api  subagent_tool Glob
+00:00:08  > web-api  tool_start Read file1
+00:00:08            drop     web-api  dropped: web-api moved on while held
+00:00:08            row      web-api  cleared
+00:00:08            title             cleared
+00:00:09  > web-api  tool_done Read file1
+00:00:09  > web-api  tool_ran Read file1
+00:00:09  > web-api  subagent_tool Read
+00:00:09  > web-api  tool_start Read file2
+00:00:09  > web-api  tool_done Read file2
+00:00:09  > web-api  tool_ran Read file2
+00:00:09  > web-api  subagent_tool Read
+00:00:10  > web-api  tool_start Read file3
+00:00:10  > web-api  tool_start Read file4
+00:00:10  > web-api  tool_done Read file4
+00:00:10  > web-api  tool_ran Read file4
+00:00:10  > web-api  subagent_tool Read
+00:00:10  > web-api  tool_done Read file3
+00:00:10  > web-api  tool_ran Read file3
+00:00:10  > web-api  subagent_tool Read
+00:00:11  > web-api  tool_start Read file5
+00:00:11  > web-api  tool_done Read file5
+00:00:11  > web-api  tool_ran Read file5
+00:00:11  > web-api  subagent_tool Read
+00:00:11  > web-api  tool_start Read file6
+00:00:11  > web-api  tool_done Read file6
+00:00:11  > web-api  tool_ran Read file6
+00:00:11  > web-api  subagent_tool Read
+00:00:12  > web-api  tool_start Read file2
+00:00:12  > web-api  tool_start Read file3
+00:00:12  > web-api  tool_done Read file2
+00:00:12  > web-api  tool_ran Read file2
+00:00:12  > web-api  subagent_tool Read
+00:00:12  > web-api  tool_done Read file3
+00:00:12  > web-api  tool_ran Read file3
+00:00:12  > web-api  subagent_tool Read
+00:00:13  > web-api  tool_start Read file4
+00:00:13  > web-api  tool_start Read file5
+00:00:13  > web-api  tool_done Read file4
+00:00:13  > web-api  tool_ran Read file4
+00:00:13  > web-api  subagent_tool Read
+00:00:13  > web-api  tool_done Read file5
+00:00:13  > web-api  tool_ran Read file5
+00:00:13  > web-api  subagent_tool Read
+00:00:14  > web-api  tool_start Read file6
+00:00:14  > web-api  tool_done Read file6
+00:00:14  > web-api  tool_ran Read file6
+00:00:14  > web-api  subagent_tool Read
+00:00:14  > web-api  tool_start Read file1
+00:00:15  > web-api  tool_done Read file1
+00:00:15  > web-api  tool_ran Read file1
+00:00:15  > web-api  subagent_tool Read
+00:00:19  > parser   session_start
+00:00:20  > parser   prompt_submit
+00:00:22  > web-api  subagent_stop
+00:00:22  > web-api  prompt_submit
+00:00:23  > parser   tool_start Read file7
+00:00:24  > web-api  stop
+00:00:24            hold     web-api  held: web-api finished 0s ago; no tab in focus (score 40 <= cost 0 + 60)
+00:00:24            row      web-api  held "held <1m · finished output"
+00:00:24            title             "next: web-api · 1 held"
+00:00:24  > parser   tool_done Read file7
+00:00:24  > parser   tool_ran Read file7
+00:00:24  > parser   tool_start Read file8
+00:00:24  > parser   tool_done Read file8
+00:00:24  > parser   tool_ran Read file8
+00:00:26  > parser   tool_start Edit file7
+00:00:27  > parser   file_edited Edit file7
+00:00:27  > parser   tool_done Edit file7
+00:00:27  > parser   tool_ran Edit file7
+00:00:27  > parser   tool_start Edit file7
+00:00:27  > parser   file_edited Edit file7
+00:00:27  > parser   tool_done Edit file7
+00:00:27  > parser   tool_ran Edit file7
+00:00:29  > parser   tool_start Edit file8
+00:00:30  > parser   file_edited Edit file8
+00:00:30  > parser   tool_done Edit file8
+00:00:30  > parser   tool_ran Edit file8
+00:00:31  > parser   tool_start Bash npm test
+00:00:40  > web-api  subagent_stop
+00:00:41  > web-api  prompt_submit
+00:00:41            drop     web-api  dropped: web-api moved on while held
+00:00:41            row      web-api  cleared
+00:00:41            title             cleared
+00:00:45  > billing  session_start
+00:00:46  > billing  prompt_submit
+00:00:49  > billing  tool_start Bash release.sh
+00:00:49  > billing  permission_seen Bash release.sh
+00:00:49            NOTIFY   billing  interrupt: billing waits 0s on Bash (release.sh) approval; no tab in focus (score 120 > cost 0 + 60)
+00:00:49            row      billing  [next] "approval for <1m"
+00:00:49            title             "next: billing · approval for <1m"
+00:00:49  > web-api  tool_start Write file9
+00:00:49  > web-api  file_edited Write file9
+00:00:49  > web-api  tool_done Write file9
+00:00:49  > web-api  tool_ran Write file9
+00:00:51  > billing  stop
+00:00:51            hold     billing  held: billing finished 0s ago; no tab in focus (score 40 <= cost 0 + 60)
+00:00:51            row      billing  held "held <1m · finished output"
+00:00:51            title             "next: billing · 1 held"
+00:00:52  > web-api  stop
+00:00:52            hold     web-api  held: web-api finished 0s ago, 1 file edited; no tab in focus (score 55 <= cost 0 + 60)
+00:00:52            row      web-api  held "held <1m · finished output"
+00:00:52            title             "next: web-api · 2 held"
+00:01:53  > parser   tool_failed Bash npm test
+00:01:53            NOTIFY   web-api  escalate: web-api finished 1m ago, 1 file edited; no tab in focus (score 61 > cost 0 + 60)
+00:01:53            row      billing  held "held 1m · finished output"
+00:01:53            row      web-api  [next] "finished 1m ago · 1 file"
+00:01:53            title             "next: web-api · 1 held"
+00:01:56  > parser   stop
+00:01:56            NOTIFY   parser   interrupt: parser finished 0s ago, 2 files edited; no tab in focus (score 70 > cost 0 + 60)
+00:01:56            row      parser   [next] "finished <1m ago · 2 files"
+00:01:56            row      web-api  later "finished 1m ago · 1 file"
+00:01:56            title             "next: parser · 1 held"
+-- 7 pings: 3 interrupted at once, 4 held; 0 releases at a break or the cap; 2 dropped before they reached you

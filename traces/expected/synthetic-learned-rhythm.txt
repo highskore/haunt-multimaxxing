@@ -1,0 +1,66 @@
+# Learns your rhythm: you get to billing about 4 minutes after it needs you, three times (twice opening
+# finished output, once allowing an approval from the notification). Then billing fails a minute into
+# you watching api work. With the base watching cost it would interrupt (score 100 - cost 30 > 60); the
+# learned rhythm doubles the cost, so it waits for your break. `replay --no-learn` shows the interrupt.
+00:00:00  > api      focus
+00:00:00  > billing  prompt_submit
+00:01:00  > billing  stop
+00:01:00            hold     billing  held: billing finished 0s ago; you're 1m into api (score 40 <= cost 90 + 60)
+00:01:00            row      billing  held "held <1m · finished output"
+00:01:00            title             "next: billing · 1 held"
+00:02:00            row      billing  held "held 1m · finished output"
+00:03:00            row      billing  held "held 2m · finished output"
+00:04:00            row      billing  held "held 3m · finished output"
+00:05:00  > billing  focus
+00:05:00            resume   billing  while away 5m: 1 turn finished
+00:05:00            drop     billing  dropped: you opened billing
+00:05:00            row      billing  cleared
+00:05:00            title             cleared
+00:05:10  > api      focus
+00:06:40  > billing  prompt_submit
+00:07:40  > billing  permission_seen Bash cargo test
+00:07:40            hold     billing  held: billing waits 0s on Bash (cargo test) approval; you're 2m into api (score 120 <= cost 135 + 60)
+00:07:40            row      billing  held "held <1m · Bash (cargo test) approval"
+00:07:40            title             "next: billing · 1 held"
+00:08:45            row      billing  held "held 1m · Bash (cargo test) approval"
+00:09:45            row      billing  held "held 2m · Bash (cargo test) approval"
+00:10:15            NOTIFY   billing  escalate: billing waits 2m on Bash (cargo test) approval; you're 5m into api (score 275 > cost 212 + 60)
+00:10:15            row      billing  [next] "approval for 2m"
+00:10:15            title             "next: billing · approval for 2m"
+00:10:45            row      billing  [next] "approval for 3m"
+00:10:45            title             "next: billing · approval for 3m"
+00:11:40  > billing  tool_done Bash cargo test
+00:11:40            row      billing  cleared
+00:11:40            title             cleared
+00:12:40  > billing  stop
+00:12:40            hold     billing  held: billing finished 0s ago; you're 7m into api (score 40 <= cost 285 + 60)
+00:12:40            row      billing  held "held <1m · finished output"
+00:12:40            title             "next: billing · 1 held"
+00:13:45            row      billing  held "held 1m · finished output"
+00:14:45            row      billing  held "held 2m · finished output"
+00:15:45            row      billing  held "held 3m · finished output"
+00:16:40  > billing  focus
+00:16:40            resume   billing  while away 11m: 1 turn finished, asked for 1 approval
+00:16:40            drop     billing  dropped: you opened billing
+00:16:40            row      billing  cleared
+00:16:40            title             cleared
+00:16:50  > api      focus
+# api starts a turn you watch; billing fails a minute later.
+00:18:20  > api      prompt_submit
+00:18:20  > billing  prompt_submit
+00:19:20  > billing  stop_failure
+00:19:20            hold     billing  held: billing failed 0s ago; you're watching api work; you usually get to billing within 4m (cost ×2.0) (score 100 <= cost 60 + 60)
+00:19:20            row      billing  held "held <1m · a failed turn"
+00:19:20            title             "next: billing · 1 held"
+00:20:30            row      billing  held "held 1m · a failed turn"
+00:21:15            NOTIFY   billing  escalate: billing failed 1m ago; you're watching api work; you usually get to billing within 4m (cost ×2.0) (score 123 > cost 60 + 60)
+00:21:15            row      billing  [next] "failed 1m ago"
+00:21:15            title             "next: billing · failed 1m ago"
+00:21:30            row      billing  [next] "failed 2m ago"
+00:21:30            title             "next: billing · failed 2m ago"
+00:22:30            row      billing  [next] "failed 3m ago"
+00:22:30            title             "next: billing · failed 3m ago"
+00:23:20  > api      stop
+00:23:20            row      billing  [next] "failed 4m ago"
+00:23:20            title             "next: billing · failed 4m ago"
+-- 6 pings: 2 interrupted at once, 4 held; 0 releases at a break or the cap; 2 dropped before they reached you

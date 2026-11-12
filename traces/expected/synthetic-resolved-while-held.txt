@@ -1,0 +1,29 @@
+# synthetic-resolved-while-held (hand-made): pings that stop mattering before your break are never
+# sent. A rule answers web's approval (tool_ran with no switch to web, as an auto-approve plugin
+# would); you open ops yourself before its held question goes out.
+00:00:00  > web      focus
+00:00:00  > web      prompt_submit
+00:00:05  > ops      focus
+00:00:05  > ops      prompt_submit
+00:00:10  > api      focus
+00:00:10  > api      prompt_submit
+00:01:00  > api      stop
+00:02:00  > web      permission_seen Bash npm run build
+00:02:00            hold     web      held: web waits 0s on Bash (npm run build) approval; you're 1m into api (score 120 <= cost 90 + 60)
+00:02:00            row      web      held "held <1m · Bash (npm run build) approval"
+00:02:00            title             "next: web · 1 held"
+00:02:15  > web      tool_ran Bash npm run build
+00:02:15            drop     web      dropped: web answered while held
+00:02:15            row      web      cleared
+00:02:15            title             cleared
+00:02:30  > ops      question_asked
+00:02:30            hold     ops      held: ops waits 0s on a question; you're 1m into api (score 120 <= cost 105 + 60)
+00:02:30            row      ops      held "held <1m · a question"
+00:02:30            title             "next: ops · 1 held"
+00:02:50  > ops      focus
+00:02:50            resume   ops      while away 2m; now waits on your answer
+00:02:50            drop     ops      dropped: you opened ops
+00:02:50            row      ops      cleared
+00:02:50            title             cleared
+00:03:00  > ops      question_answered
+-- 2 pings: 0 interrupted at once, 2 held; 0 releases at a break or the cap; 2 dropped before they reached you

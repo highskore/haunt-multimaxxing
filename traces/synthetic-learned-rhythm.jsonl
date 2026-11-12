@@ -1,0 +1,20 @@
+# Learns your rhythm: you get to billing about 4 minutes after it needs you, three times (twice opening
+# finished output, once allowing an approval from the notification). Then billing fails a minute into
+# you watching api work. With the base watching cost it would interrupt (score 100 - cost 30 > 60); the
+# learned rhythm doubles the cost, so it waits for your break. `replay --no-learn` shows the interrupt.
+{"t":0,"k":"focus","s":"api"}
+{"t":0,"k":"prompt_submit","s":"billing"}
+{"t":60000,"k":"stop","s":"billing"}
+{"t":300000,"k":"focus","s":"billing"}
+{"t":310000,"k":"focus","s":"api"}
+{"t":400000,"k":"prompt_submit","s":"billing"}
+{"t":460000,"k":"permission_seen","s":"billing","tool":"Bash","cmd":"cargo test"}
+{"t":700000,"k":"tool_done","s":"billing","tool":"Bash","cmd":"cargo test"}
+{"t":760000,"k":"stop","s":"billing"}
+{"t":1000000,"k":"focus","s":"billing"}
+{"t":1010000,"k":"focus","s":"api"}
+# api starts a turn you watch; billing fails a minute later.
+{"t":1100000,"k":"prompt_submit","s":"api"}
+{"t":1100000,"k":"prompt_submit","s":"billing"}
+{"t":1160000,"k":"stop_failure","s":"billing"}
+{"t":1400000,"k":"stop","s":"api"}

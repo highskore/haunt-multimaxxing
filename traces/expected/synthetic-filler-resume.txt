@@ -1,0 +1,46 @@
+# synthetic-filler-resume (hand-made): a and b run long turns the predictor knows; c finished with
+# edits and a failing test. While you wait, review c's diff fits in the gap; opening c shows what it did.
+00:00:00  > c        focus
+00:00:00  > c        prompt_submit
+00:00:05  > b        focus
+00:00:05            row      c        ~2m "turns take ~2m"
+00:00:05  > b        prompt_submit
+00:00:10  > a        focus
+00:00:10            row      b        ~11m "turns take ~10m"
+00:00:20  > c        task_created 1
+00:00:30  > c        tool_start Bash cargo test
+00:00:30            row      b        ~10m "turns take ~10m"
+00:01:00            row      c        ~1m "turns take ~2m"
+00:01:10  > c        tool_failed Bash cargo test
+00:01:20  > c        file_edited Edit src/lib.rs
+00:01:25  > c        file_edited Edit src/parse.rs
+00:01:25            row      b        ~9m "turns take ~10m"
+00:01:30  > c        tool_start Bash cargo test
+00:02:00  > c        tool_failed Bash cargo test
+00:02:00            row      c        cleared
+00:02:05  > c        file_edited Edit src/parse.rs
+00:02:06  > c        file_edited Edit tests/parse.rs
+00:02:10  > c        task_updated 1 completed
+00:02:20  > c        stop
+00:02:20            hold     c        held: c finished 0s ago, 3 files edited; you're 2m into a (score 85 <= cost 125 + 60)
+00:02:20            row      c        held "held <1m · finished output"
+00:02:20            fill     ~8m      review c's diff (3 files) (~2m of ~8m before b is due)
+00:02:20            title             "next: c · 1 held"
+00:02:30  > a        prompt_submit
+00:02:30            RELEASE  c        released 1 at a break: you sent a prompt on a
+00:02:30            row      b        ~8m "turns take ~10m"
+00:02:30            row      c        [next] "finished <1m ago · 3 files"
+00:02:30            title             "next: c · finished <1m ago · 3 files"
+00:03:30            row      b        ~7m "turns take ~10m"
+00:03:30            row      c        [next] "finished 1m ago · 3 files"
+00:03:30            title             "next: c · finished 1m ago · 3 files"
+00:04:30            row      b        ~6m "turns take ~10m"
+00:04:30            row      c        [next] "finished 2m ago · 3 files"
+00:04:30            title             "next: c · finished 2m ago · 3 files"
+00:05:30  > c        focus
+00:05:30            resume   c        while away 5m: 1 turn finished, 1 task done, cargo test failed twice, 3 files edited
+00:05:30            row      a        ~5m "turns take ~8m"
+00:05:30            row      b        ~5m "turns take ~10m"
+00:05:30            row      c        cleared
+00:05:30            title             cleared
+-- 1 ping: 0 interrupted at once, 1 held; 1 release at a break or the cap; 0 dropped before they reached you

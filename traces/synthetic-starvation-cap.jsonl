@@ -1,0 +1,9 @@
+# synthetic-starvation-cap (hand-made): you stay deep in api for a quarter of an hour; web's finished
+# output never outweighs that, so it goes out when it has been held for the 10 minute cap.
+{"t":0,"k":"focus","s":"web"}
+{"t":0,"k":"prompt_submit","s":"web"}
+{"t":5000,"k":"focus","s":"api"}
+{"t":5000,"k":"prompt_submit","s":"api"}
+{"t":30000,"k":"stop","s":"api"}
+{"t":60000,"k":"stop","s":"web"}
+{"t":900000,"k":"prompt_submit","s":"api"}

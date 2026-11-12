@@ -1,0 +1,17 @@
+# synthetic-batch-at-break (hand-made): you read api's output; web finishing and a small db approval
+# both wait, then go out as one notification when you send api its next prompt.
+{"t":0,"k":"focus","s":"web"}
+{"t":0,"k":"prompt_submit","s":"web"}
+{"t":10000,"k":"focus","s":"db"}
+{"t":10000,"k":"prompt_submit","s":"db"}
+{"t":20000,"k":"focus","s":"api"}
+{"t":20000,"k":"prompt_submit","s":"api"}
+{"t":30000,"k":"tool_start","s":"api","tool":"Bash","cmd":"cargo test -p api"}
+{"t":90000,"k":"tool_done","s":"api","tool":"Bash","cmd":"cargo test -p api"}
+{"t":120000,"k":"stop","s":"api"}
+{"t":200000,"k":"file_edited","s":"web","tool":"Edit","path":"src/app.tsx"}
+{"t":205000,"k":"stop","s":"web"}
+{"t":260000,"k":"permission_seen","s":"db","tool":"Bash","cmd":"git push origin main"}
+{"t":330000,"k":"prompt_submit","s":"api"}
+{"t":345000,"k":"focus","s":"db"}
+{"t":350000,"k":"tool_ran","s":"db","tool":"Bash","cmd":"git push origin main"}

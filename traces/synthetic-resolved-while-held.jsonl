@@ -1,0 +1,15 @@
+# synthetic-resolved-while-held (hand-made): pings that stop mattering before your break are never
+# sent. A rule answers web's approval (tool_ran with no switch to web, as an auto-approve plugin
+# would); you open ops yourself before its held question goes out.
+{"t":0,"k":"focus","s":"web"}
+{"t":0,"k":"prompt_submit","s":"web"}
+{"t":5000,"k":"focus","s":"ops"}
+{"t":5000,"k":"prompt_submit","s":"ops"}
+{"t":10000,"k":"focus","s":"api"}
+{"t":10000,"k":"prompt_submit","s":"api"}
+{"t":60000,"k":"stop","s":"api"}
+{"t":120000,"k":"permission_seen","s":"web","tool":"Bash","cmd":"npm run build"}
+{"t":135000,"k":"tool_ran","s":"web","tool":"Bash","cmd":"npm run build"}
+{"t":150000,"k":"question_asked","s":"ops"}
+{"t":170000,"k":"focus","s":"ops"}
+{"t":180000,"k":"question_answered","s":"ops"}

@@ -1,0 +1,595 @@
+// haunt plugin API, plan section 3.3. Gated imports are linked only when the capability is granted.
+// 0.2: `decisions` and `allowlist` imports; palette items carry a time, a mark and a surface.
+// 0.3: `verified` on agent-event; `sidebar` import; `row-menu` and `on-row-moved` exports.
+// 0.4: `theme` and `typing` imports; `on-theme-changed` export.
+// 0.5: surface, tool, command, file path, task id and request key on agent-event; `rows`, `timer`,
+//      `clock` and `panel` imports; `on-tick` export; `on-event` returns nothing.
+//      `hold`, `top-row`, `keys`, `exec`, `terminal`, `dock`, `glow`, `title`, `sound` and `speech` imports;
+//      `on-exec`, `on-away-changed`, `on-hover-hold` and `on-fs-tree` exports.
+package haunt:plugin@0.5.0;
+
+interface types {
+  record agent-event {
+    kind: string,
+    session-id: option<string>,
+    agent-id: option<string>,
+    cwd: option<string>,
+    // A task's subject (task_created) or status (task_updated), the tool name (tool_ran,
+    // subagent_tool), the prompt (prompt_submit) or the plan (plan_exit); one line, at most 1024
+    // characters, hidden characters removed. A plan keeps "\n": up to 200 lines of up to 1024 each.
+    // The prompt and plan need `event_details`.
+    summary: option<string>,
+    // Came over the socket with the surface's nonce. Unverified events (OSC, wrong or no nonce) can be
+    // forged by anything in the terminal; plugins holding pty_write, allowlist_suggest or
+    // decisions_read never get them.
+    verified: bool,
+    // The tab the event came from.
+    surface: option<string>,
+    // The tool's name, for tool, permission and file events.
+    tool: option<string>,
+    // A Bash command or a file path, with hidden characters spelled out as haunt shows them
+    // (`⏎`, `⇥`, `\u{…}`) and cut to 1024 characters. Only with `event_details`.
+    command: option<string>,
+    file-path: option<string>,
+    task-id: option<string>,
+    // On a verified `permission_seen`, for plugins granted `pty_write`: the key `pty.answer` takes.
+    // A terminal-only request (suspicious, or an earlier prompt maybe still on screen) has one too,
+    // but answering it writes nothing.
+    request-key: option<u64>,
+  }
+
+  // Open square: your answer; filled: a plugin's; round: one that lapsed.
+  enum mark { open, filled, round }
+
+  record palette-item {
+    id: string,
+    title: string,
+    subtitle: option<string>,
+    // Unix ms, shown as a time column.
+    at-ms: option<u64>,
+    mark: option<mark>,
+    // Enter jumps to this surface's tab instead of calling `on-action`.
+    surface: option<string>,
+  }
+
+  enum log-level { debug, info, warn, error }
+
+  // A row context-menu entry. An entry whose `parent` is another entry's id sits in its submenu
+  // (one level). Choosing one calls `on-action(id, <surface>)`.
+  record menu-item {
+    id: string,
+    title: string,
+    checked: bool,
+    parent: option<string>,
+  }
+}
+
+// Always linked.
+interface log {
+  use types.{log-level};
+  log: func(level: log-level, msg: string);
+}
+
+// Always linked. Per-plugin state, 10 MB in total.
+interface kv {
+  get: func(key: string) -> option<string>;
+  set: func(key: string, value: string) -> result<_, string>;
+  delete: func(key: string);
+}
+
+// Always linked. `remove` and `retitle` act on this plugin's own commands and modes with that id.
+interface palette {
+  mode: func(word: string, title: string);
+  command: func(id: string, title: string, default-key: option<string>);
+  remove: func(id: string);
+  retitle: func(id: string, title: string) -> result<_, string>;
+}
+
+// Always linked. The app's colour tokens, read only; `on-theme-changed` follows a switch.
+interface theme {
+  record token {
+    // Dotted and lowercase, like "color.hairline".
+    name: string,
+    // "#rrggbb" or "#rrggbbaa".
+    value: string,
+  }
+
+  // "default" is black and white.
+  name: func() -> string;
+  tokens: func() -> list<token>;
+}
+
+// Capability `notifications`. Choosing an action calls `on-action(action.id, binding or "")`. When
+// `binding` is an open tab's surface id, choosing the notification or an action also brings that tab up.
+interface notify {
+  record action {
+    id: string,
+    title: string,
+  }
+  notify: func(title: string, body: string, actions: list<action>, binding: option<string>) -> result<_, string>;
+}
+
+// Capability `pty_write`. `request-id` is the key of the surface's pending permission request.
+// haunt writes Allow or Deny only while that request is still live; there is no free-form text.
+interface pty {
+  answer: func(surface: string, allow: bool, request-id: u64) -> result<_, string>;
+}
+
+// Capability `pty_type`. Types `text` into the current tab, then presses Return if `enter`. Only while
+// handling a palette command or key the user just ran, and only into the tab focused then. haunt
+// refuses it while that tab has a prompt up, and refuses text with control or invisible characters
+// (a tab is fine).
+interface typing {
+  type-text: func(text: string, enter: bool) -> result<_, string>;
+}
+
+// `read` and `list` need `fs_read`, `write` needs `fs_write`; paths must match the declared globs.
+// Capabilities `fs_read` and `fs_write`: globs under `${cwd}/`, the folder the app opened an agent's tab in,
+// inside $HOME and not under a dot-folder or ~/Library. The host refuses everything else.
+interface fs {
+  read: func(path: string) -> result<list<u8>, string>;
+  write: func(path: string, data: list<u8>) -> result<_, string>;
+  %list: func(path: string) -> result<list<string>, string>;
+}
+
+// Capability `decisions_read`. Verified permission decisions, newest first; read only.
+interface decisions {
+  variant outcome {
+    allowed-in-haunt,
+    denied-in-haunt,
+    allowed-by-plugin(string),
+    denied-by-plugin(string),
+    answered-in-terminal,
+    superseded,
+  }
+
+  record decision {
+    at-ms: u64,
+    surface-id: string,
+    tool: string,
+    preview: string,
+    cwd: option<string>,
+    outcome: outcome,
+    // "claude", "codex" or another agent id.
+    agent: string,
+  }
+
+  // `text` is a case-insensitive substring of tool, preview, cwd, outcome or surface id; at most 1000.
+  query: func(text: string, limit: u32) -> list<decision>;
+}
+
+// Capability `allowlist_suggest`. haunt writes a rule only when the user accepts the proposal in its UI.
+interface allowlist {
+  // Claude Code Bash approvals clicked in haunt, per project and exact command, newest first.
+  record approval {
+    project: string,
+    command: string,
+    count: u32,
+    last-at-ms: u64,
+  }
+
+  approvals: func(min-count: u32) -> list<approval>;
+  // Offers `Bash(<command>)` for `project` as a pending suggestion; needs at least one approval.
+  propose: func(project: string, command: string) -> result<_, string>;
+}
+
+// Capability `sidebar`. Arranges the core's rows: order, pins, named sections and colours.
+// The core keeps NEEDS YOU first and complete, and shows every row exactly once.
+interface sidebar {
+  enum state-group { needs-you, running, idle }
+
+  record row-info {
+    surface: string,
+    name: string,
+    // "shell", "claude" or "codex".
+    kind: string,
+    group: state-group,
+    selected: bool,
+  }
+
+  // Rows in the core's own order, before any arrangement.
+  rows: func() -> list<row-info>;
+
+  // Muted colours; the app picks the shades.
+  enum tab-color { red, orange, yellow, green, blue, purple, gray }
+  enum color-style { dot, tint }
+  enum placement { before-state, after-state }
+
+  record section {
+    // Lowercase letters, digits and '-'; the group id in the snapshot is `section:<id>`.
+    id: string,
+    // 1 to 32 ASCII letters, digits, spaces and basic punctuation; may not spell a core group.
+    title: string,
+    surfaces: list<string>,
+  }
+
+  record arrangement {
+    // Shown as PINNED right after NEEDS YOU, in this order.
+    pinned: list<string>,
+    sections: list<section>,
+    // Where sections sit relative to RUNNING and IDLE.
+    placement: placement,
+    // Rank of rows left in the state groups; unlisted rows follow in the core's order.
+    order: list<string>,
+    // One TABS group instead of RUNNING and IDLE.
+    flat: bool,
+    colors: list<tuple<string, tab-color>>,
+    color-style: color-style,
+  }
+
+  // The first plugin to arrange owns the sidebar until it calls `clear`.
+  arrange: func(arrangement: arrangement) -> result<_, string>;
+  clear: func();
+
+  // Selects open tab `surface`, as clicking its row would: it also brings Haunt's window forward and
+  // leaves the agents view. Only while one of this plugin's buttons, keys (on key-down) or commands,
+  // or a notification action the user chose, runs; once per use. For 400 ms after, any key on that
+  // tab while it has a request is dropped, and a key held from before never repeats into it.
+  focus: func(surface: string) -> result<_, string>;
+}
+
+// Capability `decorate`. One decoration per row and plugin, set and replaced at any time; the row
+// shows one, in the user's `[layout] row_labels` order, then install order; the others' labels go in
+// its tooltip. All text is plain: hidden characters are removed, labels cut
+// to 24 characters and suffixes to 64 (160 when `scroll`). On a row that needs you or has a request
+// up, haunt's status owns the row: the label, spark and suffix are dropped there; the bar stays.
+interface rows {
+  // dim: secondary text; text: primary; warn: orange, for a failure such as red CI. Haunt's own
+  // needs-you colour is not available.
+  enum tone { dim, text, warn }
+
+  record spark {
+    // At most 32 points, oldest first, scaled to the row: 0 is the bottom, 255 the top.
+    points: list<u8>,
+    tone: tone,
+  }
+
+  record decoration {
+    // The right-hand slot. Its tone is dim or warn (text is refused: it would pass for needs-you), and a
+    // label containing one of haunt's status words (needs you, waiting, approve, allow, deny, running, idle,
+    // done, failed) as a word, however cased, spaced, punctuated or lookalike, is refused ("ok-done-ok",
+    // "Do.ne"); "CI 7/9", "allowlist" and "abandoned" are fine.
+    label: option<string>,
+    label-tone: tone,
+    // After the meta line, separated by " · ".
+    suffix: option<string>,
+    suffix-tone: tone,
+    // The suffix scrolls slowly when it doesn't fit, like a ticker; it may then be 160 characters.
+    // A suffix saying "needs you" or "waiting for you", however spelled, is refused.
+    scroll: bool,
+    // A thin bar under the row, 0 to 1.
+    bar: option<f32>,
+    // A sparkline in the right-hand slot, in place of the label.
+    spark: option<spark>,
+  }
+
+  // `none` takes this plugin's decoration off the row. Errs for a tab that isn't open.
+  decorate: func(surface: string, decoration: option<decoration>) -> result<_, string>;
+  clear-all: func();
+}
+
+// Capability `timer`. `on-tick` every `seconds`, at least 15; one interval per plugin. A tick comes up to a
+// few seconds late while another plugin call is running.
+interface timer {
+  every: func(seconds: u32) -> result<_, string>;
+  stop: func();
+}
+
+// Capability `timer`, which a plugin needs to do anything with the time of day. WASI clocks are UTC.
+interface clock {
+  // Minutes east of UTC for the user's time zone now.
+  local-offset-min: func() -> s32;
+}
+
+// Capability `panel`. A panel is a small tree of nodes the app draws natively; the plugin never
+// draws itself. Buttons call `on-action(action, "panel:<id>")`; the user closing the panel calls
+// `on-action("", "panel:<id>")`.
+interface panel {
+  // sheet: over the window, only while handling a command, key or panel button the user just used
+  // (otherwise it comes up as a card), one across all plugins, and none for the session after the user
+  // closes two of the plugin's within a minute; right: a pane beside the terminal; card: a small
+  // floating card; window: its own window, which the user can move to another display.
+  enum placement { sheet, right, card, window }
+  // warn is orange, for failures; haunt's needs-you colour isn't available to panels.
+  enum tone { text, dim, faint, warn }
+
+  // `text` may hold "\n": up to 40 lines, each plain and cut to 256 characters.
+  record text-node { text: string, tone: tone, mono: bool, bold: bool }
+  record row-node { label: string, sub: option<string>, right: option<string>, tone: tone }
+  // `surface`: a tab id; pressing the button brings that tab forward (selection only, nothing is
+  // typed), then calls `on-action` as usual.
+  record button-node { label: string, action: string, primary: bool, surface: option<string> }
+
+  // `rows` × `columns` cells, row by row, each 0 to 1 (shaded from the background to the text
+  // colour) or below 0 for an empty cell. `marked` cells get a warn outline. At most 2048 points
+  // each way.
+  record grid-node { rows: u32, columns: u32, cell: u32, cells: list<f32>, marked: list<u32> }
+
+  // A fixed canvas of `width` × `height` points; shapes in drawing order. `shade` is 0 to 1 as in
+  // the grid; `warn` draws in the warn orange instead. At most 16 dots per panel pulse.
+  // `key` (at most 64 characters, unique within its canvas): when the panel is shown again, a shape
+  // with the same key and kind eases from where it was over about 600 ms; with Reduce Motion it
+  // jumps. A rect's `sub` is a second, dim line under its label, cut to 80 characters.
+  record dot { x: f32, y: f32, r: f32, shade: f32, warn: bool, pulse: bool, key: option<string> }
+  record rect { x: f32, y: f32, w: f32, h: f32, shade: f32, warn: bool, label: option<string>, sub: option<string>, key: option<string> }
+  record line { x1: f32, y1: f32, x2: f32, y2: f32, shade: f32, key: option<string> }
+  record label { x: f32, y: f32, text: string, tone: tone, key: option<string> }
+  variant shape { dot(dot), rect(rect), line(line), label(label) }
+  // `ease-ms`: how long keyed shapes take to move, 100 to 3000 ms (default 600).
+  record canvas-node { width: u32, height: u32, shapes: list<shape>, ease-ms: option<u32> }
+
+  variant node {
+    // Containers: later nodes name them as `parent`.
+    vstack,
+    hstack,
+    text(text-node),
+    row(row-node),
+    button(button-node),
+    divider,
+    grid(grid-node),
+    canvas(canvas-node),
+  }
+
+  record panel-node {
+    // The index of an earlier `vstack` or `hstack`; none: the panel itself.
+    parent: option<u32>,
+    node: node,
+  }
+
+  // Shows or replaces panel `id`. At most 512 nodes, 8 levels, 4096 shapes and 4 panels; strings
+  // lose hidden characters and are cut to 256 characters; 4 updates a second. One sheet at a time,
+  // and none for 10 s after the user closes one. Haunt draws a header naming the plugin, with a
+  // close button, above every panel; no button is bound to Return.
+  show: func(id: string, placement: placement, title: string, nodes: list<panel-node>) -> result<_, string>;
+  close: func(id: string);
+}
+
+// Capability `notify_hold`. Holds haunt's notifications and other plugins' while the user focuses,
+// then shows one that sums them up. A permission prompt is never held: its notification still shows,
+// and its row still goes to NEEDS YOU. Several plugins may hold at once; the summary shows when the
+// last one lets go, naming the holders by id (two, then "+n") with each one's headline and actions.
+interface hold {
+  record summary-action {
+    id: string,
+    label: string,
+    // An open tab's id: choosing the action brings that tab forward (selection only, nothing is typed),
+    // then calls `on-action` as usual. Refused unless the tab is open when the summary is set.
+    surface: option<string>,
+  }
+  // Holds for `minutes` (1 to 240); haunt releases it then if the plugin hasn't. Starting again
+  // moves the end and clears the summary.
+  start: func(minutes: u32) -> result<_, string>;
+  // While holding: a plain headline (cut to 64) and at most 2 actions (labels plain, cut to 24, and
+  // never one of haunt's status words) for the summary. Choosing one calls `on-action(id, "hold")`.
+  set-summary: func(headline: option<string>, actions: list<summary-action>) -> result<_, string>;
+  // Ends this plugin's hold.
+  release: func();
+}
+
+// Capability `sidebar_top`. One row above every group in the sidebar, drawn like a tab row; the first
+// plugin to set it owns it until it sets `none`. Text is plain; title cut to 32, sub to 48, right to 24.
+// Clicking it calls `on-action(action, "top")` when `action` is set.
+interface top-row {
+  use rows.{tone};
+  record top {
+    title: string,
+    sub: option<string>,
+    right: option<string>,
+    tone: tone,
+    // A thin bar under the row, 0 to 1.
+    bar: option<f32>,
+    action: option<string>,
+  }
+  set: func(row: option<top>) -> result<_, string>;
+}
+
+// Capability `keys`. `chord` is written as in config.toml (`"cmd+shift+p"`) and needs cmd, since any
+// other chord is terminal input. Pressing it calls `on-action(id, "key-down")`; releasing it, lifting
+// one of its modifiers or haunt losing focus calls `on-action(id, "key-up")`. Repeats are dropped.
+// Refused for a chord haunt or macOS reserves, or one already bound, and for an id one of its palette
+// commands has; `[keys] "<plugin id>/<id>"` moves it. At most 8 per plugin. Both calls may type into
+// the tab like a palette command (`pty_type`).
+interface keys {
+  bind: func(id: string, chord: string) -> result<_, string>;
+  unbind: func(id: string);
+  // Calls `on-hover-hold(true, surface)` once the user has held `modifier` (only "alt") alone for a
+  // moment with the pointer on sidebar row `surface` in haunt's key window, and `on-hover-hold(false,
+  // surface)` when they let go, leave the row, press any key or haunt loses focus. Haunt only watches:
+  // every key still reaches the terminal. One plugin at a time; none gives it up.
+  hover-hold: func(modifier: option<string>) -> result<_, string>;
+}
+
+// Capability `exec`, which names the commands it may run, e.g. `exec = ["gh-pr-checks", "git-status"]`.
+// Each runs with fixed arguments, no shell, no stdin and a cleared environment, at the root of the git
+// repository tab `surface` was opened in, where `${cwd}` of `fs` would point (inside your home folder, not under a
+// dot-folder, ~/Library or the haunt dir, and not ~/Documents and the like themselves). git and gh come from Homebrew or the Command Line Tools, never PATH, and no
+// program the repo's git config names ever runs (on macOS git and gh run in a sandbox that lets them start
+// nothing but git); git-status errs in a repo whose config defines a filter. A 10 s
+// timeout kills it and whatever it started; each stream is cut to 256 KB. The result arrives at
+// `on-exec(job, ...)`. At most 2 running per plugin.
+interface exec {
+  variant command {
+    // gh pr checks --json name,state,bucket,startedAt,completedAt,link
+    gh-pr-checks,
+    // gh pr view --json number,url,title,state,isDraft,headRefName
+    gh-pr-view,
+    // git status --porcelain=v2 --branch --ignore-submodules=dirty
+    git-status,
+    // git rev-parse --abbrev-ref HEAD
+    git-branch,
+    // git rev-parse HEAD
+    git-head,
+    // git log -n <1 to 50> --no-color --format=%H%x1f%an%x1f%at%x1f%s
+    git-log(u32),
+  }
+  record output {
+    // The exit status; -1 when it timed out or was killed.
+    status: s32,
+    stdout: string,
+    stderr: string,
+    truncated: bool,
+  }
+  // A job id for `on-exec`.
+  run: func(surface: string, command: command) -> result<u64, string>;
+}
+
+// --- Draft: 6-10. The shapes are settled for plugins to build against; the host doesn't link
+// --- these imports yet, and a manifest asking for their capabilities doesn't install yet.
+
+// Capability `sound`. Plays haunt's bundled sounds, never the plugin's own audio; the user's Sound
+// setting can mute every plugin.
+interface sound {
+  enum name { chime, bell, rain }
+  // One shot. `pitch` in semitones, -12 to 12; `volume` 0 to 1. At most 4 a second.
+  play: func(sound: name, pitch: s32, volume: f32) -> result<_, string>;
+  // Loops `sound` at `level`, 0 to 1; 0 stops it. One loop per plugin.
+  ambient: func(sound: name, level: f32) -> result<_, string>;
+}
+
+// Capability `speech`. Speaks in the system voice. Text is plain, cut to 200 characters, without `[` or `]`; one
+// utterance at a time, at most 1 every 2 s.
+interface speech {
+  say: func(text: string) -> result<_, string>;
+  stop: func();
+}
+
+// Capability `dock`. The Dock tile: whole images, one per state, that the plugin ships.
+interface dock {
+  // Up to 4 still PNGs, at most 1 MB and 512 pixels each way, by id (letters, digits, '-'); replaces earlier
+  // ones. Haunt reads only IHDR, PLTE, tRNS, IDAT and IEND; other ancillary chunks are dropped unread. This
+  // checks them; haunt decodes them afterwards, and one that doesn't decode shows haunt's own icon.
+  images: func(images: list<tuple<string, list<u8>>>) -> result<_, string>;
+  // Shows image `id` (none: haunt's own icon) with `badge` as the Dock's count badge (none: no badge).
+  // `blink` is an image haunt shows briefly every few seconds, except under Reduce Motion. The first
+  // plugin to show owns the tile until it shows `none` with no badge.
+  show: func(id: option<string>, badge: option<u32>, blink: option<string>) -> result<_, string>;
+}
+
+// Capability `glow`. A hairline glow along the top edge of the display haunt's window is on, over every
+// app, breathing (steady under Reduce Motion), with a label at its right end that haunt writes; a plugin
+// can't put text of its own there. The first plugin to show it owns it until `hide`.
+interface glow {
+  use rows.{tone};
+  variant glow-label {
+    none,
+    // Haunt's own count of the tabs that need you, kept up to date: "1 needs you", "3 need you",
+    // nothing for 0.
+    needs,
+    // A tab that needs you: "<tab> · <command>? · <time waiting>", the command only with
+    // `event_details`. Once that tab doesn't need you, or if it didn't, `needs`.
+    row(string),
+  }
+  show: func(tone: tone, label: glow-label) -> result<_, string>;
+  hide: func();
+}
+
+// Capability `title`. One line of dim mono text right-aligned in the title bar, next to its buttons;
+// plain, at most 48 characters; `none` clears it. The first plugin to set it owns it.
+interface title {
+  set: func(text: option<string>) -> result<_, string>;
+}
+
+// Capability `terminal_read`. The last `lines` (1 to 50) visible lines of any tab's screen, oldest
+// first, blank lines below the text dropped, hidden characters spelled out, each cut to 512. Read
+// only, never input; only while handling a key or palette command the user just used, or in
+// `on-hover-hold(true, surface)` for that surface alone; at most 8 reads each time.
+interface terminal {
+  read: func(surface: string, lines: u32) -> result<list<string>, string>;
+}
+
+// Capability `clipboard = "write"`. Puts text on the clipboard: "\n" is kept, CR goes, each line is made
+// plain (no tabs or hidden characters); at most 400 lines and 16 KB. Only once per button, key press
+// (not its release), palette command or notification action the user just used. Trailing line breaks are cut, a first
+// line with nothing visible is refused, and Haunt always shows a multi-line paste of it first.
+// There is no read.
+interface clipboard {
+  write: func(text: string) -> result<_, string>;
+}
+
+// Capability `open_url = ["github.com", ...]`, its domains listed in the consent line. Opens `url` in
+// the browser, only while handling a click on one of this plugin's panel buttons or notification
+// actions whose action is that very url (a panel button's tooltip shows it; a notification button's
+// title gets its host), once per click. https only, the host exactly one of the
+// listed domains, no user or password, no port, printable ASCII with no spaces or backslashes.
+interface link {
+  open-url: func(url: string) -> result<_, string>;
+}
+
+// Capability `fs_list = true`. The files and folders directly in `dir`, an absolute path inside an
+// agent's project folder (as for `fs`) and not under a dot-folder: names and sizes only, never
+// contents. Dot entries and symlinks are left out; a folder's size is 0. At most 4096 entries, else an
+// error; at most 20 calls a second.
+interface fs-list {
+  record entry { name: string, size: u64, dir: bool }
+  entries: func(dir: string) -> result<list<entry>, string>;
+
+  // Starts a walk of the folders under `dir` (scoped like `entries`) down to `depth` levels (0 to 5)
+  // and returns a job id at once; the result reaches `on-fs-tree(job, ...)`, sorted by path ("" is
+  // `dir` itself), each folder with its regular files and their bytes; files deeper than `depth` count
+  // toward their folder at `depth`. Dot entries and symlinks are skipped. After 50,000 entries or
+  // 1.5 s it returns what it counted with `truncated`. One call per 10 s.
+  record folder { path: string, files: u32, bytes: u64 }
+  record tree-result { folders: list<folder>, truncated: bool }
+  tree: func(dir: string, depth: u8) -> result<u64, string>;
+}
+
+world plugin {
+  use types.{agent-event, palette-item, menu-item};
+  use exec.{output};
+  use fs-list.{tree-result};
+  import log;
+  import kv;
+  import palette;
+  import theme;
+  import notify;
+  import pty;
+  import typing;
+  import fs;
+  import decisions;
+  import allowlist;
+  import sidebar;
+  import rows;
+  import timer;
+  import clock;
+  import panel;
+  import hold;
+  import top-row;
+  import keys;
+  import exec;
+  import sound;
+  import speech;
+  import dock;
+  import glow;
+  import title;
+  import terminal;
+  import clipboard;
+  import link;
+  import fs-list;
+
+  export init: func(settings: string);
+  export on-settings-changed: func(settings: string);
+  export on-event: func(event: agent-event);
+  export palette-items: func(mode: string, query: string) -> list<palette-item>;
+  export on-action: func(action-id: string, payload: string);
+  // Entries for a row's context menu.
+  export row-menu: func(surface: string) -> list<menu-item>;
+  // The user dragged `surface` into snapshot group `group`, above `before` (none: at the end).
+  // Only plugins granted `sidebar` get it.
+  export on-row-moved: func(surface: string, group: string, before: option<string>);
+  // The app switched theme; read the new one with `theme`.
+  export on-theme-changed: func();
+  // The interval asked for with `timer.every` passed; `now-ms` is Unix ms. Only plugins granted `timer`
+  // get it.
+  export on-tick: func(now-ms: u64);
+  // A job from `exec.run` finished. Only plugins granted `exec` get it.
+  export on-exec: func(job: u64, outcome: result<output, string>);
+  // Capability `away`. The user stepped away (screen locked or asleep, or no input for config.toml's
+  // `[presence] away_after` minutes, 10 by default) or came back; `away-ms` is how long since their last input,
+  // set when `away` is false. A sheet shown on the return waits until the user switches to haunt,
+  // and is dropped if they type first or don't come within 10 minutes.
+  export on-away-changed: func(away: bool, away-ms: u64);
+  // See `keys.hover-hold`. Only the plugin holding it gets it.
+  export on-hover-hold: func(held: bool, surface: string);
+  // The walk `fs-list.tree` returned `job` for finished.
+  export on-fs-tree: func(job: u64, outcome: result<tree-result, string>);
+}

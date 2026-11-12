@@ -1,0 +1,28 @@
+[package]
+# Fixed so the manifest's `entry` path stays valid.
+name = "haunt-plugin"
+description = "MULTIMAXXING for Haunt: the wasm wrapper around multimaxxing-engine"
+edition = "2024"
+license = "MIT"
+version = "0.1.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+multimaxxing-engine = { path = "../crates/engine" }
+wit-bindgen = { version = "0.63", default-features = false, features = ["macros", "realloc"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+toml = "0.9"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+panic = "abort"
+
+[workspace]
